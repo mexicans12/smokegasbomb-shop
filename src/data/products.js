@@ -48,27 +48,36 @@ export async function saveProducts(products) {
 }
 
 /** Upload an image/video straight to Vercel Blob; returns { type, src }.
- *  Times out instead of hanging forever if the API/Blob is misconfigured. */
+ *  Wrapped in Promise.race so the UI ALWAYS settles, even if the Blob SDK
+ *  never resolves (e.g. misconfigured token / stale deploy). */
 export async function uploadMedia(file) {
   const { upload } = await import("@vercel/blob/client");
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60_000); // 60s ceiling
-
-  try {
+  const doUpload = (async () => {
     const blob = await upload(file.name, file, {
       access: "public",
       handleUploadUrl: "/api/upload",
-      abortSignal: controller.signal,
     });
     const type = file.type.startsWith("video/") ? "video" : "image";
     return { type, src: blob.url };
+  })();
+
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            "Upload scaduto (60s). Verifica di aver effettuato l'accesso e che BLOB_READ_WRITE_TOKEN sia configurato su Vercel, poi ridistribuisci.",
+          ),
+        ),
+      60_000,
+    );
+  });
+
+  try {
+    return await Promise.race([doUpload, timeout]);
   } catch (err) {
-    if (controller.signal.aborted) {
-      throw new Error(
-        "Upload scaduto. Controlla di aver effettuato l'accesso e che BLOB_READ_WRITE_TOKEN sia configurato.",
-      );
-    }
     throw new Error(err?.message || "Upload non riuscito");
   } finally {
     clearTimeout(timer);
