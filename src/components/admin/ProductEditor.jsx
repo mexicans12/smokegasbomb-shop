@@ -1,0 +1,225 @@
+import { useRef, useState } from "react";
+import { formatGrams, formatPrice, uploadMedia } from "../../data/products.js";
+
+const inputCls =
+  "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-neon/60";
+const labelCls =
+  "mb-1.5 block text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-500";
+
+/** Editable card for a single product. Calls onChange with the updated
+ *  product on every edit, and onDelete to remove it. */
+export default function ProductEditor({ product, onChange, onDelete }) {
+  const fileRef = useRef(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const set = (patch) => onChange({ ...product, ...patch });
+  const setMedia = (patch) =>
+    onChange({ ...product, media: { ...product.media, ...patch } });
+
+  // Clicking the media box opens the file picker; the file is uploaded
+  // straight to Vercel Blob and the returned URL is stored on the product.
+  const onPickFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setUploadError("");
+    setUploading(true);
+    try {
+      const media = await uploadMedia(file);
+      onChange({ ...product, media });
+    } catch (err) {
+      setUploadError(err?.message || "Upload non riuscito");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const clearMedia = (e) => {
+    e?.stopPropagation?.();
+    setMedia({ src: "", poster: undefined });
+  };
+
+  return (
+    <article className="glass flex flex-col gap-4 rounded-2xl p-4">
+      {/* clickable media — click to upload image or video */}
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        title="Clicca per caricare immagine o video"
+        className="group/media relative aspect-square w-full overflow-hidden rounded-xl bg-black/40 text-left ring-1 ring-white/10 transition-colors hover:ring-neon/50"
+      >
+        {product.media?.src ? (
+          product.media.type === "video" ? (
+            <video
+              src={product.media.src}
+              muted
+              loop
+              autoPlay
+              playsInline
+              onError={clearMedia}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <img
+              src={product.media.src}
+              alt={product.name}
+              onError={clearMedia}
+              className="h-full w-full object-cover"
+            />
+          )
+        ) : (
+          <div className="grid h-full w-full place-items-center text-xs uppercase tracking-[0.2em] text-zinc-600">
+            Nessun media
+          </div>
+        )}
+
+        {/* uploading overlay */}
+        {uploading && (
+          <div className="absolute inset-0 z-20 grid place-items-center bg-black/70">
+            <span className="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-neon animate-pulse">
+              Caricamento…
+            </span>
+          </div>
+        )}
+
+        {/* hover hint */}
+        {!uploading && (
+          <div className="absolute inset-0 grid place-items-center bg-black/0 opacity-0 transition-all group-hover/media:bg-black/45 group-hover/media:opacity-100">
+            <span className="rounded-full bg-neon px-4 py-2 text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-[#1a1206]">
+              {product.media?.src ? "Cambia media" : "Carica media"}
+            </span>
+          </div>
+        )}
+
+        {/* remove media (only when present) */}
+        {product.media?.src && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={clearMedia}
+            onKeyDown={(e) => (e.key === "Enter" ? clearMedia(e) : null)}
+            className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-black/70 text-sm text-white transition-colors hover:bg-blood"
+          >
+            ✕
+          </span>
+        )}
+
+        {/* preview chips: name suffix + price, like the live card */}
+        <div className="pointer-events-none absolute bottom-2 left-2 right-2 flex items-center justify-between text-xs">
+          <span className="rounded-md bg-black/60 px-2 py-1 font-semibold text-white">
+            {product.name} <span className="text-neon">{product.package}</span>
+          </span>
+          <span className="rounded-md bg-black/60 px-2 py-1 font-bold text-neon">
+            {formatPrice(product.price)}
+          </span>
+        </div>
+      </button>
+
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*,video/*"
+        onChange={onPickFile}
+        className="hidden"
+      />
+
+      {uploadError && (
+        <p className="-mt-1 text-xs font-semibold text-blood">{uploadError}</p>
+      )}
+
+      {/* name */}
+      <div>
+        <label className={labelCls}>Nome prodotto</label>
+        <input
+          className={inputCls}
+          value={product.name}
+          onChange={(e) => set({ name: e.target.value })}
+          placeholder="Nome"
+        />
+      </div>
+
+      {/* package + quantity */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelCls}>Confezione (A–Z)</label>
+          <input
+            className={`${inputCls} text-center uppercase`}
+            value={product.package}
+            maxLength={1}
+            onChange={(e) =>
+              set({
+                package: e.target.value
+                  .toUpperCase()
+                  .replace(/[^A-Z]/g, "")
+                  .slice(0, 1),
+              })
+            }
+            placeholder="A"
+          />
+        </div>
+        <div>
+          <label className={labelCls}>Quantità (g, 0–5)</label>
+          <input
+            type="number"
+            min={0}
+            max={5}
+            step={0.5}
+            className={inputCls}
+            value={product.quantity}
+            onChange={(e) => set({ quantity: Number(e.target.value) })}
+          />
+        </div>
+      </div>
+
+      {/* price */}
+      <div>
+        <label className={labelCls}>Prezzo (€)</label>
+        <input
+          type="number"
+          min={0}
+          step={1}
+          className={inputCls}
+          value={product.price}
+          onChange={(e) => set({ price: Number(e.target.value) })}
+        />
+      </div>
+
+      {/* footer: grams readout + delete (with inline confirmation) */}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-zinc-500">{formatGrams(product.quantity)}</span>
+
+        {confirmDelete ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[0.65rem] uppercase tracking-[0.14em] text-zinc-400">
+              Sicuro?
+            </span>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-full bg-blood px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white transition-transform hover:scale-105"
+            >
+              Sì, elimina
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(false)}
+              className="rounded-full border border-white/10 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-white"
+            >
+              Annulla
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="rounded-full border border-blood/40 bg-blood/10 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-blood transition-colors hover:bg-blood hover:text-white"
+          >
+            Elimina
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
