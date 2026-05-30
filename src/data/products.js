@@ -47,15 +47,32 @@ export async function saveProducts(products) {
   return true;
 }
 
-/** Upload an image/video straight to Vercel Blob; returns { type, src }. */
+/** Upload an image/video straight to Vercel Blob; returns { type, src }.
+ *  Times out instead of hanging forever if the API/Blob is misconfigured. */
 export async function uploadMedia(file) {
   const { upload } = await import("@vercel/blob/client");
-  const blob = await upload(file.name, file, {
-    access: "public",
-    handleUploadUrl: "/api/upload",
-  });
-  const type = file.type.startsWith("video/") ? "video" : "image";
-  return { type, src: blob.url };
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000); // 60s ceiling
+
+  try {
+    const blob = await upload(file.name, file, {
+      access: "public",
+      handleUploadUrl: "/api/upload",
+      abortSignal: controller.signal,
+    });
+    const type = file.type.startsWith("video/") ? "video" : "image";
+    return { type, src: blob.url };
+  } catch (err) {
+    if (controller.signal.aborted) {
+      throw new Error(
+        "Upload scaduto. Controlla di aver effettuato l'accesso e che BLOB_READ_WRITE_TOKEN sia configurato.",
+      );
+    }
+    throw new Error(err?.message || "Upload non riuscito");
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /* ---- helpers ---- */
