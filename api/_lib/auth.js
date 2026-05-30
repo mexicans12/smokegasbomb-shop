@@ -1,26 +1,20 @@
 /* Server-side admin auth helpers (Vercel serverless, Node runtime).
-   - Password is verified against a scrypt hash stored in ADMIN_PASSWORD_HASH
-     (format "salt:hash", both hex). Plaintext lives nowhere.
+   - Password is compared against ADMIN_PASSWORD (a server-only env var; it is
+     NOT VITE_-prefixed, so it never ships to the browser).
    - The session is an HMAC-signed token in an httpOnly, Secure, SameSite
      cookie — the client can't read or forge it. */
-import { scryptSync, timingSafeEqual, createHmac } from "node:crypto";
+import { timingSafeEqual, createHmac } from "node:crypto";
 
 const COOKIE = "sgb_session";
 const MAX_AGE = 60 * 60 * 8; // 8 hours (seconds)
 
-/** Verify a plaintext password against ADMIN_PASSWORD_HASH ("salt:hash"). */
+/** Verify a plaintext password against ADMIN_PASSWORD (constant-time compare). */
 export function verifyPassword(password) {
-  const stored = process.env.ADMIN_PASSWORD_HASH || "";
-  const [salt, hashHex] = stored.split(":");
-  if (!salt || !hashHex) return false;
-  const expected = Buffer.from(hashHex, "hex");
-  let actual;
-  try {
-    actual = scryptSync(String(password), salt, expected.length);
-  } catch {
-    return false;
-  }
-  return actual.length === expected.length && timingSafeEqual(actual, expected);
+  const expected = process.env.ADMIN_PASSWORD || "";
+  if (!expected) return false;
+  const a = Buffer.from(String(password));
+  const b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 function secret() {
