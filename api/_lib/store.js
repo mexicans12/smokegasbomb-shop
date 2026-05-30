@@ -11,6 +11,7 @@ const token =
 
 const redis = url && token ? new Redis({ url, token }) : null;
 const KEY = "sgb:products";
+const SETTINGS_KEY = "sgb:settings";
 
 // Seed data — also the fallback when storage isn't configured yet.
 export const DEFAULT_PRODUCTS = [
@@ -37,6 +38,39 @@ export async function getProducts() {
 export async function setProducts(products) {
   if (!redis) throw new Error("Storage non configurato (Upstash Redis)");
   await redis.set(KEY, products);
+}
+
+/* ---- site settings (social links) ---- */
+export const DEFAULT_SETTINGS = {
+  telegram: "https://t.me",
+  instagram: "https://instagram.com",
+};
+
+export async function getSettings() {
+  if (!redis) return DEFAULT_SETTINGS;
+  try {
+    const data = await redis.get(SETTINGS_KEY);
+    return data && typeof data === "object" ? { ...DEFAULT_SETTINGS, ...data } : DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export async function setSettings(settings) {
+  if (!redis) throw new Error("Storage non configurato (Upstash Redis)");
+  await redis.set(SETTINGS_KEY, settings);
+}
+
+/** Sanitize settings — keep only known keys, enforce http(s) URLs. */
+export function sanitizeSettings(s) {
+  const clean = (v, fallback) => {
+    const str = String(v ?? "").trim().slice(0, 2048);
+    return /^https?:\/\//i.test(str) ? str : fallback;
+  };
+  return {
+    telegram: clean(s?.telegram, DEFAULT_SETTINGS.telegram),
+    instagram: clean(s?.instagram, DEFAULT_SETTINGS.instagram),
+  };
 }
 
 /** Keep only the known fields and coerce types — never trust the client. */

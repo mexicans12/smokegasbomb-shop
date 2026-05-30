@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ProductEditor from "./ProductEditor.jsx";
 import { loadProducts, saveProducts, blankProduct } from "../../data/products.js";
+import { DEFAULT_SETTINGS, loadSettings, saveSettings } from "../../data/settings.js";
 
 export default function AdminDashboard({ onLogout }) {
   const [products, setProducts] = useState(null); // null = loading
@@ -10,9 +11,38 @@ export default function AdminDashboard({ onLogout }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // editable social links
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settingsDirty, setSettingsDirty] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
+
   useEffect(() => {
     loadProducts().then(setProducts);
+    loadSettings().then(setSettings);
   }, []);
+
+  const updateSetting = (key, value) => {
+    setSettings((s) => ({ ...s, [key]: value }));
+    setSettingsDirty(true);
+    setSettingsSaved(false);
+    setSettingsError("");
+  };
+
+  const handleSaveSettings = async () => {
+    setSettingsSaving(true);
+    setSettingsError("");
+    try {
+      await saveSettings(settings);
+      setSettingsDirty(false);
+      setSettingsSaved(true);
+    } catch (e) {
+      setSettingsError(e.message || "Salvataggio non riuscito");
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
 
   const markChanged = () => {
     setDirty(true);
@@ -126,6 +156,69 @@ export default function AdminDashboard({ onLogout }) {
           >
             {saving ? "Salvataggio…" : "Salva modifiche"}
           </button>
+        </div>
+      </div>
+
+      {/* social links settings */}
+      <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
+        <div className="glass rounded-2xl p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="display text-2xl text-white">
+                <span className="text-neon text-glow">LINK SOCIAL</span>
+              </h3>
+              <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-500">
+                Link usati nei bottoni Telegram e Instagram
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {settingsError && (
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-blood">
+                  {settingsError}
+                </span>
+              )}
+              {settingsSaved && !settingsDirty && (
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-neon">
+                  ✓ Salvato
+                </span>
+              )}
+              <button
+                onClick={handleSaveSettings}
+                disabled={!settingsDirty || settingsSaving}
+                className="btn-glow rounded-full bg-neon px-5 py-2.5 text-xs font-extrabold uppercase tracking-[0.16em] text-[#1a1206] transition-transform hover:scale-[1.03] active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
+              >
+                {settingsSaving ? "Salvataggio…" : "Salva link"}
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                Link Telegram
+              </label>
+              <input
+                type="url"
+                inputMode="url"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-neon/60"
+                value={settings.telegram}
+                onChange={(e) => updateSetting("telegram", e.target.value)}
+                placeholder="https://t.me/iltuocanale"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-500">
+                Link Instagram
+              </label>
+              <input
+                type="url"
+                inputMode="url"
+                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-neon/60"
+                value={settings.instagram}
+                onChange={(e) => updateSetting("instagram", e.target.value)}
+                placeholder="https://instagram.com/iltuoprofilo"
+              />
+            </div>
+          </div>
         </div>
       </div>
 

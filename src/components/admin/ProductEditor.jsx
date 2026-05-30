@@ -162,13 +162,20 @@ export default function ProductEditor({ product, onChange, onDelete }) {
         <div>
           <label className={labelCls}>Quantità (g, 0–5)</label>
           <input
-            type="number"
-            min={0}
-            max={5}
-            step={0.5}
+            type="text"
+            inputMode="decimal"
             className={inputCls}
             value={product.quantity}
-            onChange={(e) => set({ quantity: Number(e.target.value) })}
+            onChange={(e) => {
+              // allow empty + in-progress decimals; keep raw string while typing
+              const v = e.target.value.replace(",", ".");
+              if (v === "" || /^\d*\.?\d*$/.test(v)) set({ quantity: v });
+            }}
+            onBlur={(e) => {
+              const n = Math.max(0, Math.min(5, parseFloat(e.target.value) || 0));
+              set({ quantity: n });
+            }}
+            placeholder="0"
           />
         </div>
       </div>
@@ -177,12 +184,16 @@ export default function ProductEditor({ product, onChange, onDelete }) {
       <div>
         <label className={labelCls}>Prezzo (€)</label>
         <input
-          type="number"
-          min={0}
-          step={1}
+          type="text"
+          inputMode="numeric"
           className={inputCls}
           value={product.price}
-          onChange={(e) => set({ price: Number(e.target.value) })}
+          onChange={(e) => {
+            const v = e.target.value.replace(",", ".");
+            if (v === "" || /^\d*\.?\d*$/.test(v)) set({ price: v });
+          }}
+          onBlur={(e) => set({ price: Math.max(0, parseFloat(e.target.value) || 0) })}
+          placeholder="0"
         />
       </div>
 

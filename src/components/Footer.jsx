@@ -1,27 +1,30 @@
 import { Telegram, Instagram } from "./icons.jsx";
 
-const SOCIALS = [
-  {
-    Icon: Telegram,
-    label: "Telegram",
-    href: "https://t.me",
-    className:
-      "bg-[#229ED9] shadow-[0_8px_26px_-8px_rgba(34,158,217,0.7)] hover:shadow-[0_12px_34px_-8px_rgba(34,158,217,0.95)]",
-  },
-  {
-    Icon: Instagram,
-    label: "Instagram",
-    href: "https://instagram.com",
-    style: {
-      background:
-        "linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)",
+export default function Footer({
+  telegram = "https://t.me",
+  instagram = "https://instagram.com",
+}) {
+  const SOCIALS = [
+    {
+      Icon: Telegram,
+      label: "Telegram",
+      href: telegram,
+      className:
+        "bg-[#229ED9] shadow-[0_8px_26px_-8px_rgba(34,158,217,0.7)] hover:shadow-[0_12px_34px_-8px_rgba(34,158,217,0.95)]",
     },
-    className:
-      "shadow-[0_8px_26px_-8px_rgba(214,41,118,0.6)] hover:shadow-[0_12px_34px_-8px_rgba(214,41,118,0.9)]",
-  },
-];
+    {
+      Icon: Instagram,
+      label: "Instagram",
+      href: instagram,
+      style: {
+        background:
+          "linear-gradient(45deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)",
+      },
+      className:
+        "shadow-[0_8px_26px_-8px_rgba(214,41,118,0.6)] hover:shadow-[0_12px_34px_-8px_rgba(214,41,118,0.9)]",
+    },
+  ];
 
-export default function Footer() {
   return (
     <footer className="border-t border-white/8 px-6 py-8">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 text-center sm:grid-cols-3">

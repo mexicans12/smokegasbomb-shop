@@ -2,7 +2,7 @@ import Reveal from "./ui/Reveal.jsx";
 import TricolorBar from "./ui/TricolorBar.jsx";
 import { Telegram } from "./icons.jsx";
 
-export default function FinalCTA() {
+export default function FinalCTA({ telegram = "https://t.me" }) {
   return (
     <section id="cta" className="px-4 py-24 sm:px-6">
       <Reveal className="mx-auto max-w-7xl">
@@ -32,7 +32,7 @@ Per contattarci premere il bottone sottostante
             </p>
 
             <a
-              href="https://t.me"
+              href={telegram}
               target="_blank"
               rel="noreferrer"
               className="group mx-auto mt-10 flex w-fit items-center gap-2.5 rounded-full bg-[#229ED9] px-10 py-4.5 text-sm font-extrabold uppercase tracking-[0.2em] text-white shadow-[0_12px_40px_-12px_rgba(34,158,217,0.85)] ring-1 ring-inset ring-white/20 transition-all hover:scale-[1.03] hover:bg-[#1b90c9] active:scale-95"

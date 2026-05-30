@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { Telegram } from "./icons.jsx";
 
 /** Sticky, pill-shaped floating top navigation bar. */
-export default function Nav() {
+export default function Nav({ telegram = "https://t.me" }) {
   return (
     <motion.header
       initial={{ opacity: 0, y: -20 }}
@@ -22,7 +22,7 @@ export default function Nav() {
 
         {/* primary CTA */}
         <a
-          href="https://t.me"
+          href={telegram}
           target="_blank"
           rel="noreferrer"
           className="group flex items-center gap-2 rounded-full bg-[#229ED9] px-5 py-2.5 text-xs font-extrabold uppercase tracking-[0.2em] text-white shadow-[0_8px_28px_-8px_rgba(34,158,217,0.75)] ring-1 ring-inset ring-white/20 transition-all hover:scale-[1.03] hover:bg-[#1b90c9] hover:shadow-[0_10px_34px_-8px_rgba(34,158,217,0.95)]"
