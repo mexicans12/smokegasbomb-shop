@@ -12,7 +12,6 @@
   "dependencies": {
     "@upstash/redis": "^1.38.0",
     "@vercel/blob": "^2.4.0",
-    "hash-password": "^0.1.1",
     "motion": "^11.11.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

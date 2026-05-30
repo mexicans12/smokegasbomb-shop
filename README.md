@@ -24,8 +24,6 @@ npm run dev:api    # vercel dev → runs the API too (needs .env)
 See [DEPLOY.md](./DEPLOY.md) for the full Vercel setup (storage + env vars).
 
 ## Admin credentials
-Set server-side env vars — see DEPLOY.md. Generate with:
-```bash
-npm run hash-password 'your-password'
-npm run gen-secret
-```
+Set server-side env vars — see DEPLOY.md:
+- `ADMIN_USERNAME`, `ADMIN_PASSWORD` (plaintext; server-only, never bundled)
+- `SESSION_SECRET` — generate with `npm run gen-secret`
