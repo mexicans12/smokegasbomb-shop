@@ -13,22 +13,24 @@ export default function ProductEditor({ product, onChange, onDelete }) {
   const fileRef = useRef(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [uploadError, setUploadError] = useState("");
 
   const set = (patch) => onChange({ ...product, ...patch });
   const setMedia = (patch) =>
     onChange({ ...product, media: { ...product.media, ...patch } });
 
-  // Clicking the media box opens the file picker; the file is uploaded
-  // straight to Vercel Blob and the returned URL is stored on the product.
+  // Clicking the media box opens the file picker; the file is uploaded to
+  // Cloudinary's CDN with live progress, and the URL is stored on the product.
   const onPickFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
     setUploadError("");
+    setProgress(0);
     setUploading(true);
     try {
-      const media = await uploadMedia(file);
+      const media = await uploadMedia(file, setProgress);
       onChange({ ...product, media });
     } catch (err) {
       setUploadError(err?.message || "Upload non riuscito");
@@ -76,12 +78,18 @@ export default function ProductEditor({ product, onChange, onDelete }) {
           </div>
         )}
 
-        {/* uploading overlay */}
+        {/* uploading overlay with live progress bar */}
         {uploading && (
-          <div className="absolute inset-0 z-20 grid place-items-center bg-black/70">
-            <span className="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-neon animate-pulse">
-              Caricamento…
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 px-6">
+            <span className="text-[0.65rem] font-extrabold uppercase tracking-[0.16em] text-neon">
+              {progress < 100 ? "Caricamento" : "Elaborazione"} · {Math.round(progress)}%
             </span>
+            <div className="h-2 w-full max-w-[180px] overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-neon transition-[width] duration-200 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         )}
 
@@ -95,15 +103,15 @@ export default function ProductEditor({ product, onChange, onDelete }) {
         )}
 
         {/* remove media (only when present) */}
-        {product.media?.src && (
+        {product.media?.src && !uploading && (
           <span
             role="button"
             tabIndex={0}
             onClick={clearMedia}
             onKeyDown={(e) => (e.key === "Enter" ? clearMedia(e) : null)}
-            className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-black/70 text-sm text-white transition-colors hover:bg-blood"
+            className="absolute right-2 top-2 z-10 grid h-7 w-7 place-items-center rounded-full bg-black/70 text-white transition-colors hover:bg-blood"
           >
-            ✕
+            <X className="h-3.5 w-3.5" />
           </span>
         )}
 
@@ -198,27 +206,31 @@ export default function ProductEditor({ product, onChange, onDelete }) {
         />
       </div>
 
-      {/* footer: grams readout + delete (with inline confirmation) */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      {/* footer: grams readout + delete (icon, with inline confirmation) */}
+      <div className="flex items-center justify-between gap-2">
         {confirmDelete ? (
           <>
-            <span className="text-[0.65rem] uppercase tracking-[0.14em] text-zinc-400 whitespace-nowrap">
-              Sicuro?
+            <span className="text-[0.65rem] uppercase tracking-[0.14em] text-zinc-400">
+              Eliminare?
             </span>
-            <div className="flex flex-1 items-center justify-end gap-2">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={onDelete}
-                className="whitespace-nowrap rounded-full bg-blood px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white transition-transform hover:scale-105"
+                aria-label="Conferma eliminazione"
+                title="Conferma"
+                className="grid h-9 w-9 place-items-center rounded-full bg-blood text-white transition-transform hover:scale-110"
               >
-                Sì, elimina
+                <Check className="h-4 w-4" />
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="whitespace-nowrap rounded-full border border-white/10 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-white"
+                aria-label="Annulla"
+                title="Annulla"
+                className="grid h-9 w-9 place-items-center rounded-full border border-white/10 text-zinc-400 transition-colors hover:text-white"
               >
-                Annulla
+                <X className="h-4 w-4" />
               </button>
             </div>
           </>
@@ -228,9 +240,11 @@ export default function ProductEditor({ product, onChange, onDelete }) {
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="whitespace-nowrap rounded-full border border-blood/40 bg-blood/10 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-blood transition-colors hover:bg-blood hover:text-white"
+              aria-label="Elimina prodotto"
+              title="Elimina"
+              className="grid h-9 w-9 place-items-center rounded-full border border-blood/40 bg-blood/10 text-blood transition-colors hover:bg-blood hover:text-white"
             >
-              Elimina
+              <Trash className="h-4 w-4" />
             </button>
           </>
         )}

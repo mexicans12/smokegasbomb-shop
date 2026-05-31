@@ -189,7 +189,7 @@ export default function AdminDashboard({ onLogout }) {
                 disabled={!settingsDirty || settingsSaving}
                 className="btn-glow rounded-full bg-neon px-5 py-2.5 text-xs font-extrabold uppercase tracking-[0.16em] text-[#1a1206] transition-transform hover:scale-[1.03] active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
               >
-                {settingsSaving ? "Salvataggio…" : "Salva link"}
+                {settingsSaving ? "Salvataggio…" : "Salva"}
               </button>
             </div>
           </div>
