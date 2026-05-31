@@ -47,19 +47,39 @@ export async function saveProducts(products) {
   return true;
 }
 
-/** Upload an image/video straight to Vercel Blob; returns { type, src }.
- *  Wrapped in Promise.race so the UI ALWAYS settles, even if the Blob SDK
- *  never resolves (e.g. misconfigured token / stale deploy). */
+/** Upload an image/video to Cloudinary (signed); returns { type, src }.
+ *  1) get a short-lived signature from our admin-gated /api/upload
+ *  2) upload the file directly to Cloudinary's CDN
+ *  Wrapped in Promise.race so the UI always settles. */
 export async function uploadMedia(file) {
-  const { upload } = await import("@vercel/blob/client");
-
   const doUpload = (async () => {
-    const blob = await upload(file.name, file, {
-      access: "public",
-      handleUploadUrl: "/api/upload",
+    // 1. signature from our backend (requires admin session)
+    const sigRes = await fetch("/api/upload", {
+      method: "POST",
+      credentials: "include",
     });
-    const type = file.type.startsWith("video/") ? "video" : "image";
-    return { type, src: blob.url };
+    const sig = await sigRes.json().catch(() => ({}));
+    if (!sigRes.ok) {
+      throw new Error(sig.error || "Impossibile ottenere la firma di upload");
+    }
+
+    // 2. direct upload to Cloudinary (auto = image or video)
+    const form = new FormData();
+    form.append("file", file);
+    form.append("api_key", sig.apiKey);
+    form.append("timestamp", sig.timestamp);
+    form.append("signature", sig.signature);
+    form.append("folder", sig.folder);
+
+    const url = `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`;
+    const upRes = await fetch(url, { method: "POST", body: form });
+    const up = await upRes.json().catch(() => ({}));
+    if (!upRes.ok) {
+      throw new Error(up?.error?.message || "Upload su Cloudinary non riuscito");
+    }
+
+    const type = up.resource_type === "video" ? "video" : "image";
+    return { type, src: up.secure_url };
   })();
 
   let timer;
@@ -68,10 +88,10 @@ export async function uploadMedia(file) {
       () =>
         reject(
           new Error(
-            "Upload scaduto (60s). Verifica di aver effettuato l'accesso e che BLOB_READ_WRITE_TOKEN sia configurato su Vercel, poi ridistribuisci.",
+            "Upload scaduto (90s). Riprova; se persiste verifica le variabili Cloudinary su Vercel.",
           ),
         ),
-      60_000,
+      90_000,
     );
   });
 

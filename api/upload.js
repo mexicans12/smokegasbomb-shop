@@ -1,51 +1,41 @@
-/* POST /api/upload → authorizes a direct-to-Blob client upload.
-   The browser uploads the file straight to Vercel Blob (bypassing the
-   serverless body-size limit, so large videos work); this endpoint only
-   issues a short-lived token after verifying the admin session. */
-import { handleUpload } from "@vercel/blob/client";
+/* POST /api/upload → returns short-lived Cloudinary upload signing params.
+   Admin-gated: only a logged-in admin can obtain a signature. The browser
+   then uploads the file directly to Cloudinary's CDN (images + video).
+
+   Env (server-only): CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY,
+                      CLOUDINARY_API_SECRET */
+import { createHash } from "node:crypto";
 import { isAuthedReq } from "./_lib/auth.js";
 
+const FOLDER = "smokegasbomb";
+
 export default async function handler(req, res) {
-  // Require a valid admin session before issuing any upload token.
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Metodo non consentito" });
+  }
+
   if (!isAuthedReq(req)) {
     return res.status(401).json({ error: "Non autorizzato. Effettua di nuovo l'accesso." });
   }
 
-  // Without a Blob read-write token the SDK can't mint an upload token.
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error("upload: BLOB_READ_WRITE_TOKEN is not set");
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+  if (!cloudName || !apiKey || !apiSecret) {
+    console.error("upload: Cloudinary env vars missing");
     return res.status(500).json({
       error:
-        "Archiviazione media non configurata: manca BLOB_READ_WRITE_TOKEN. Collega lo store Blob al progetto e ridistribuisci.",
+        "Archiviazione media non configurata: imposta CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET su Vercel, poi ridistribuisci.",
     });
   }
 
-  try {
-    const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  // Cloudinary signature: sha1 of the alphabetically-sorted params to sign +
+  // the API secret. We sign `folder` and `timestamp`.
+  const timestamp = Math.floor(Date.now() / 1000);
+  const toSign = `folder=${FOLDER}&timestamp=${timestamp}`;
+  const signature = createHash("sha1").update(toSign + apiSecret).digest("hex");
 
-    const result = await handleUpload({
-      request: req,
-      body,
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: [
-          "image/jpeg",
-          "image/png",
-          "image/webp",
-          "image/gif",
-          "video/mp4",
-          "video/webm",
-          "video/quicktime",
-        ],
-        maximumSizeInBytes: 50 * 1024 * 1024, // 50 MB
-        addRandomSuffix: true,
-      }),
-      // No onUploadCompleted: the browser gets the blob URL directly from the
-      // upload, so we avoid waiting on the extra server callback round-trip.
-    });
-    return res.status(200).json(result);
-  } catch (e) {
-    console.error("upload error:", e?.message || e);
-    return res.status(400).json({ error: e?.message || "Upload non riuscito" });
-  }
+  return res.status(200).json({ cloudName, apiKey, timestamp, signature, folder: FOLDER });
 }
