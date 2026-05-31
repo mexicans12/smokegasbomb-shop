@@ -88,16 +88,14 @@ export default function FeaturedDrops() {
     <section id="drops" className="relative px-4 py-24 sm:px-6">
       <div className="mx-auto max-w-7xl">
         {/* header */}
-        <div className="mb-10 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
+        <div className="mb-10">
           <Reveal>
             <h2 className="display text-6xl text-white sm:text-7xl">
               <span className="text-outline">STOCK</span>
               <br />
               <span className="text-neon text-glow">LIMITATO</span>
             </h2>
-          </Reveal>
-          <Reveal delay={0.15} className="text-right">
-            <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+            <p className="mt-4 text-xs uppercase tracking-[0.2em] text-zinc-500">
               Qualità prima della quantità
             </p>
           </Reveal>
