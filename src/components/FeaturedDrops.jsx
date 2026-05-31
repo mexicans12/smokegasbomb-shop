@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Reveal from "./ui/Reveal.jsx";
 import { loadProducts, formatPrice, formatGrams } from "../data/products.js";
 
@@ -7,6 +7,52 @@ function MediaPlaceholder() {
     <div className="grid h-full w-full place-items-center text-xs uppercase tracking-[0.2em] text-zinc-600">
       Nessun media
     </div>
+  );
+}
+
+/** A product video that stays paused on load. The user taps the play
+ *  button to start it with sound; native controls take over afterwards. */
+function ProductVideo({ src, poster, cls, onError }) {
+  const videoRef = useRef(null);
+  const [started, setStarted] = useState(false);
+
+  const play = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = false; // start with sound, per design
+    const p = v.play();
+    if (p) p.catch(() => {});
+    setStarted(true);
+  };
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        loop
+        playsInline
+        preload="metadata"
+        controls={started}
+        onError={onError}
+        className={cls}
+      />
+      {!started && (
+        <button
+          type="button"
+          onClick={play}
+          aria-label="Riproduci video"
+          className="absolute inset-0 grid place-items-center bg-black/30 transition-colors duration-300 hover:bg-black/20"
+        >
+          <span className="btn-glow grid h-16 w-16 place-items-center rounded-full bg-neon text-black transition-transform duration-300 group-hover:scale-110">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7">
+              <path d="M8 5v14l11-7z" />
+            </svg>
+          </span>
+        </button>
+      )}
+    </>
   );
 }
 
@@ -21,15 +67,11 @@ function ProductMedia({ media, name }) {
 
   if (media.type === "video") {
     return (
-      <video
+      <ProductVideo
         src={media.src}
         poster={media.poster}
-        autoPlay
-        muted
-        loop
-        playsInline
+        cls={cls}
         onError={() => setFailed(true)}
-        className={cls}
       />
     );
   }
