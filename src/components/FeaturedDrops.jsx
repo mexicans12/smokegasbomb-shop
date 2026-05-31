@@ -16,6 +16,10 @@ function ProductVideo({ src, poster, cls, onError }) {
   const videoRef = useRef(null);
   const [started, setStarted] = useState(false);
 
+  // Without an explicit poster, append a #t media fragment so the browser
+  // seeks to (and paints) the first frame as the preview instead of black.
+  const previewSrc = poster || src.includes("#") ? src : `${src}#t=0.1`;
+
   const play = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -29,7 +33,7 @@ function ProductVideo({ src, poster, cls, onError }) {
     <>
       <video
         ref={videoRef}
-        src={src}
+        src={previewSrc}
         poster={poster}
         loop
         playsInline
@@ -46,8 +50,8 @@ function ProductVideo({ src, poster, cls, onError }) {
           className="absolute inset-0 grid place-items-center bg-black/30 transition-colors duration-300 hover:bg-black/20"
         >
           <span className="btn-glow grid h-16 w-16 place-items-center rounded-full bg-neon text-black transition-transform duration-300 group-hover:scale-110">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="ml-1 h-7 w-7">
-              <path d="M8 5v14l11-7z" />
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-7 w-7">
+              <path d="M9 6v12l9-6z" />
             </svg>
           </span>
         </button>
