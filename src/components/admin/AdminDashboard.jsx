@@ -164,7 +164,31 @@ export default function AdminDashboard({ onLogout }) {
         </div>
       </div>
 
-      {/* social links settings */}
+      {/* product grid */}
+      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        {products === null ? (
+          <div className="glass rounded-2xl p-12 text-center text-zinc-500">
+            Caricamento prodotti…
+          </div>
+        ) : products.length === 0 ? (
+          <div className="glass rounded-2xl p-12 text-center text-zinc-500">
+            Nessun prodotto. Premi “+ Aggiungi” per crearne uno.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {products.map((p) => (
+              <ProductEditor
+                key={p.id}
+                product={p}
+                onChange={updateProduct}
+                onDelete={() => deleteProduct(p.id)}
+              />
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* social links settings — below the products */}
       <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6">
         <div className="glass rounded-2xl p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -237,30 +261,6 @@ export default function AdminDashboard({ onLogout }) {
           </div>
         </div>
       </div>
-
-      {/* product grid */}
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
-        {products === null ? (
-          <div className="glass rounded-2xl p-12 text-center text-zinc-500">
-            Caricamento prodotti…
-          </div>
-        ) : products.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center text-zinc-500">
-            Nessun prodotto. Premi “+ Aggiungi” per crearne uno.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((p) => (
-              <ProductEditor
-                key={p.id}
-                product={p}
-                onChange={updateProduct}
-                onDelete={() => deleteProduct(p.id)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
     </div>
   );
 }
