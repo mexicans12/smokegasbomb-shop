@@ -49,61 +49,69 @@ export async function saveProducts(products) {
 
 /** Upload an image/video to Cloudinary (signed); returns { type, src }.
  *  1) get a short-lived signature from our admin-gated /api/upload
- *  2) upload the file directly to Cloudinary's CDN
- *  Wrapped in Promise.race so the UI always settles. */
-export async function uploadMedia(file) {
-  const doUpload = (async () => {
-    // 1. signature from our backend (requires admin session)
-    const sigRes = await fetch("/api/upload", {
-      method: "POST",
-      credentials: "include",
-    });
-    const sig = await sigRes.json().catch(() => ({}));
-    if (!sigRes.ok) {
-      throw new Error(sig.error || "Impossibile ottenere la firma di upload");
-    }
+ *  2) upload the file directly to Cloudinary's CDN via XHR (for progress)
+ *  onProgress(percent 0–100) is called as the file uploads. */
+export async function uploadMedia(file, onProgress) {
+  const report = (p) => {
+    if (typeof onProgress === "function") onProgress(Math.max(0, Math.min(100, p)));
+  };
+  report(0);
 
-    // 2. direct upload to Cloudinary (auto = image or video)
-    const form = new FormData();
-    form.append("file", file);
-    form.append("api_key", sig.apiKey);
-    form.append("timestamp", sig.timestamp);
-    form.append("signature", sig.signature);
-    form.append("folder", sig.folder);
+  // 1. signature from our backend (requires admin session)
+  const sigRes = await fetch("/api/upload", {
+    method: "POST",
+    credentials: "include",
+  });
+  const sig = await sigRes.json().catch(() => ({}));
+  if (!sigRes.ok) {
+    throw new Error(sig.error || "Impossibile ottenere la firma di upload");
+  }
 
-    const url = `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`;
-    const upRes = await fetch(url, { method: "POST", body: form });
-    const up = await upRes.json().catch(() => ({}));
-    if (!upRes.ok) {
-      throw new Error(up?.error?.message || "Upload su Cloudinary non riuscito");
-    }
+  // 2. direct upload to Cloudinary via XHR so we can track upload progress
+  const form = new FormData();
+  form.append("file", file);
+  form.append("api_key", sig.apiKey);
+  form.append("timestamp", sig.timestamp);
+  form.append("signature", sig.signature);
+  form.append("folder", sig.folder);
 
-    const type = up.resource_type === "video" ? "video" : "image";
-    // keep publicId + resourceType so the backend can delete the old asset
-    // from Cloudinary when this media is replaced or removed.
-    return { type, src: up.secure_url, publicId: up.public_id, resourceType: up.resource_type };
-  })();
+  const url = `https://api.cloudinary.com/v1_1/${sig.cloudName}/auto/upload`;
 
-  let timer;
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(
-      () =>
-        reject(
-          new Error(
-            "Upload scaduto (90s). Riprova; se persiste verifica le variabili Cloudinary su Vercel.",
-          ),
-        ),
-      90_000,
-    );
+  const up = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.timeout = 120000; // 2 min ceiling
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) report((e.loaded / e.total) * 100);
+    };
+    // file is sent; Cloudinary is still processing → show near-complete
+    xhr.upload.onload = () => report(99);
+
+    xhr.onload = () => {
+      let data = {};
+      try {
+        data = JSON.parse(xhr.responseText);
+      } catch {
+        /* ignore */
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        report(100);
+        resolve(data);
+      } else {
+        reject(new Error(data?.error?.message || "Upload su Cloudinary non riuscito"));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Errore di rete durante l'upload"));
+    xhr.ontimeout = () => reject(new Error("Upload scaduto. Riprova."));
+
+    xhr.send(form);
   });
 
-  try {
-    return await Promise.race([doUpload, timeout]);
-  } catch (err) {
-    throw new Error(err?.message || "Upload non riuscito");
-  } finally {
-    clearTimeout(timer);
-  }
+  const type = up.resource_type === "video" ? "video" : "image";
+  // keep publicId + resourceType so the backend can delete the old asset
+  // from Cloudinary when this media is replaced or removed.
+  return { type, src: up.secure_url, publicId: up.public_id, resourceType: up.resource_type };
 }
 
 /* ---- helpers ---- */
