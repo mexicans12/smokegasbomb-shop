@@ -25,3 +25,21 @@ export const ArrowUp = (p) => (
     <path d="M12 19V5M6 11l6-6 6 6" />
   </svg>
 );
+
+export const Trash = (p) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6M10 11v6M14 11v6" />
+  </svg>
+);
+
+export const Check = (p) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
+
+export const X = (p) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M18 6 6 18M6 6l12 12" />
+  </svg>
+);

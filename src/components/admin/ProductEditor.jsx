@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { formatGrams, formatPrice, uploadMedia } from "../../data/products.js";
+import { Trash, Check, X } from "../icons.jsx";
 
 const inputCls =
   "w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-neon/60";
