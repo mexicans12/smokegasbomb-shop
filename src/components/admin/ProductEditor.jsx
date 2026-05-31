@@ -160,7 +160,7 @@ export default function ProductEditor({ product, onChange, onDelete }) {
           />
         </div>
         <div>
-          <label className={labelCls}>Quantità (g, 0–5)</label>
+          <label className={labelCls}>Quantità (0–5g)</label>
           <input
             type="text"
             inputMode="decimal"
@@ -198,37 +198,40 @@ export default function ProductEditor({ product, onChange, onDelete }) {
       </div>
 
       {/* footer: grams readout + delete (with inline confirmation) */}
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs text-zinc-500">{formatGrams(product.quantity)}</span>
-
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {confirmDelete ? (
-          <div className="flex items-center gap-2">
-            <span className="text-[0.65rem] uppercase tracking-[0.14em] text-zinc-400">
+          <>
+            <span className="text-[0.65rem] uppercase tracking-[0.14em] text-zinc-400 whitespace-nowrap">
               Sicuro?
             </span>
-            <button
-              type="button"
-              onClick={onDelete}
-              className="rounded-full bg-blood px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white transition-transform hover:scale-105"
-            >
-              Sì, elimina
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(false)}
-              className="rounded-full border border-white/10 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-white"
-            >
-              Annulla
-            </button>
-          </div>
+            <div className="flex flex-1 items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={onDelete}
+                className="whitespace-nowrap rounded-full bg-blood px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white transition-transform hover:scale-105"
+              >
+                Sì, elimina
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                className="whitespace-nowrap rounded-full border border-white/10 px-3 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-400 transition-colors hover:text-white"
+              >
+                Annulla
+              </button>
+            </div>
+          </>
         ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmDelete(true)}
-            className="rounded-full border border-blood/40 bg-blood/10 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-blood transition-colors hover:bg-blood hover:text-white"
-          >
-            Elimina
-          </button>
+          <>
+            <span className="text-xs text-zinc-500">{formatGrams(product.quantity)}</span>
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              className="whitespace-nowrap rounded-full border border-blood/40 bg-blood/10 px-4 py-2 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-blood transition-colors hover:bg-blood hover:text-white"
+            >
+              Elimina
+            </button>
+          </>
         )}
       </div>
     </article>

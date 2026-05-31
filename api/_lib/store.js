@@ -40,10 +40,12 @@ export async function setProducts(products) {
   await redis.set(KEY, products);
 }
 
-/* ---- site settings (social links) ---- */
+/* ---- site settings (social links) ----
+   Stored as bare usernames (e.g. "iltuocanale"), not full URLs. The public
+   site builds the t.me/ and instagram.com/ URLs from these. */
 export const DEFAULT_SETTINGS = {
-  telegram: "https://t.me",
-  instagram: "https://instagram.com",
+  telegram: "",
+  instagram: "",
 };
 
 export async function getSettings() {
@@ -61,15 +63,21 @@ export async function setSettings(settings) {
   await redis.set(SETTINGS_KEY, settings);
 }
 
-/** Sanitize settings — keep only known keys, enforce http(s) URLs. */
+/** Sanitize settings — keep only known keys, reduce each value to a bare
+    username (strip any pasted t.me/ or instagram.com/ URL and "@"). */
 export function sanitizeSettings(s) {
-  const clean = (v, fallback) => {
-    const str = String(v ?? "").trim().slice(0, 2048);
-    return /^https?:\/\//i.test(str) ? str : fallback;
-  };
+  const handle = (v) =>
+    String(v ?? "")
+      .trim()
+      .replace(/^https?:\/\//i, "")
+      .replace(/^(www\.)?(t\.me|telegram\.me|instagram\.com|instagr\.am)/i, "")
+      .replace(/^[@/]+/, "")
+      .replace(/\/+$/, "")
+      .replace(/[^A-Za-z0-9._-]/g, "")
+      .slice(0, 64);
   return {
-    telegram: clean(s?.telegram, DEFAULT_SETTINGS.telegram),
-    instagram: clean(s?.instagram, DEFAULT_SETTINGS.instagram),
+    telegram: handle(s?.telegram),
+    instagram: handle(s?.instagram),
   };
 }
 
@@ -89,6 +97,19 @@ export function sanitizeProduct(p, i) {
       type: t,
       src: String(p?.media?.src ?? "").slice(0, 2048),
       ...(p?.media?.poster ? { poster: String(p.media.poster).slice(0, 2048) } : {}),
+      ...(p?.media?.publicId ? { publicId: String(p.media.publicId).slice(0, 256) } : {}),
+      ...(p?.media?.resourceType ? { resourceType: String(p.media.resourceType).slice(0, 16) } : {}),
     },
   };
+}
+
+/** Collect Cloudinary assets ({publicId, resourceType}) referenced by a
+ *  product list — used to diff old vs new and delete orphaned uploads. */
+export function collectAssets(products) {
+  const map = new Map();
+  for (const p of products || []) {
+    const id = p?.media?.publicId;
+    if (id) map.set(id, { publicId: id, resourceType: p.media.resourceType || "image" });
+  }
+  return map;
 }

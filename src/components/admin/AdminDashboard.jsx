@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import ProductEditor from "./ProductEditor.jsx";
 import { loadProducts, saveProducts, blankProduct } from "../../data/products.js";
-import { DEFAULT_SETTINGS, loadSettings, saveSettings } from "../../data/settings.js";
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  saveSettings,
+  socialHandle,
+} from "../../data/settings.js";
 
 export default function AdminDashboard({ onLogout }) {
   const [products, setProducts] = useState(null); // null = loading
@@ -167,9 +172,6 @@ export default function AdminDashboard({ onLogout }) {
               <h3 className="display text-2xl text-white">
                 <span className="text-neon text-glow">LINK SOCIAL</span>
               </h3>
-              <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-500">
-                Link usati nei bottoni Telegram e Instagram
-              </p>
             </div>
             <div className="flex items-center gap-2">
               {settingsError && (
@@ -194,29 +196,43 @@ export default function AdminDashboard({ onLogout }) {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-500">
-                Link Telegram
+                Username Telegram
               </label>
-              <input
-                type="url"
-                inputMode="url"
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-neon/60"
-                value={settings.telegram}
-                onChange={(e) => updateSetting("telegram", e.target.value)}
-                placeholder="https://t.me/iltuocanale"
-              />
+              <div className="flex items-stretch overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] transition-colors focus-within:border-neon/60">
+                <span className="flex shrink-0 select-none items-center border-r border-white/10 px-3 text-sm text-zinc-500">
+                  t.me/
+                </span>
+                <input
+                  type="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="w-full min-w-0 bg-transparent px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none"
+                  value={socialHandle(settings.telegram)}
+                  onChange={(e) => updateSetting("telegram", socialHandle(e.target.value))}
+                  placeholder="iltuocanale"
+                />
+              </div>
             </div>
             <div>
               <label className="mb-1.5 block text-[0.65rem] font-bold uppercase tracking-[0.16em] text-zinc-500">
-                Link Instagram
+                Username Instagram
               </label>
-              <input
-                type="url"
-                inputMode="url"
-                className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none transition-colors focus:border-neon/60"
-                value={settings.instagram}
-                onChange={(e) => updateSetting("instagram", e.target.value)}
-                placeholder="https://instagram.com/iltuoprofilo"
-              />
+              <div className="flex items-stretch overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] transition-colors focus-within:border-neon/60">
+                <span className="flex shrink-0 select-none items-center border-r border-white/10 px-3 text-sm text-zinc-500">
+                  instagram.com/
+                </span>
+                <input
+                  type="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="w-full min-w-0 bg-transparent px-3 py-2 text-sm text-white placeholder:text-zinc-600 outline-none"
+                  value={socialHandle(settings.instagram)}
+                  onChange={(e) => updateSetting("instagram", socialHandle(e.target.value))}
+                  placeholder="iltuoprofilo"
+                />
+              </div>
             </div>
           </div>
         </div>

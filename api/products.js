@@ -1,6 +1,9 @@
 /* GET  /api/products  → public: returns the product list
-   PUT  /api/products  → protected: replaces the product list (admin only) */
-import { getProducts, setProducts, sanitizeProduct } from "./_lib/store.js";
+   PUT  /api/products  → protected: replaces the product list (admin only).
+                         Orphaned Cloudinary assets (media replaced/removed/
+                         deleted) are destroyed after a successful save. */
+import { getProducts, setProducts, sanitizeProduct, collectAssets } from "./_lib/store.js";
+import { destroyAssets } from "./_lib/cloudinary.js";
 import { isAuthedReq } from "./_lib/auth.js";
 
 export default async function handler(req, res) {
@@ -17,7 +20,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Payload non valido" });
     }
     try {
-      await setProducts(incoming.map(sanitizeProduct));
+      const previous = await getProducts();
+      const sanitized = incoming.map(sanitizeProduct);
+      await setProducts(sanitized);
+
+      // delete Cloudinary assets that are no longer referenced after the save
+      const oldAssets = collectAssets(previous);
+      const newAssets = collectAssets(sanitized);
+      const orphans = [...oldAssets.values()].filter((a) => !newAssets.has(a.publicId));
+      if (orphans.length) await destroyAssets(orphans);
+
       return res.status(200).json({ ok: true });
     } catch (e) {
       return res.status(500).json({ error: e.message || "Salvataggio non riuscito" });

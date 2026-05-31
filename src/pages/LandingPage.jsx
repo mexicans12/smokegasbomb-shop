@@ -10,7 +10,12 @@ import MapSection from "../components/MapSection.jsx";
 import FinalCTA from "../components/FinalCTA.jsx";
 import Footer from "../components/Footer.jsx";
 import BackToTop from "../components/BackToTop.jsx";
-import { DEFAULT_SETTINGS, loadSettings } from "../data/settings.js";
+import {
+  DEFAULT_SETTINGS,
+  loadSettings,
+  telegramUrl,
+  instagramUrl,
+} from "../data/settings.js";
 
 export default function LandingPage() {
   // Always show the age-gate on every visit (no persistence).
@@ -32,6 +37,9 @@ export default function LandingPage() {
 
   const handleEnter = () => setEntered(true);
 
+  const telegram = telegramUrl(settings.telegram);
+  const instagram = instagramUrl(settings.instagram);
+
   return (
     <>
       <Atmosphere />
@@ -44,14 +52,14 @@ export default function LandingPage() {
           nothing behind the gate (images, animations) loads before then. */}
       {entered && (
         <>
-          <Nav telegram={settings.telegram} />
+          <Nav telegram={telegram} />
           <main>
             <Hero />
             <FeaturedDrops />
             <MapSection />
-            <FinalCTA telegram={settings.telegram} />
+            <FinalCTA telegram={telegram} />
           </main>
-          <Footer telegram={settings.telegram} instagram={settings.instagram} />
+          <Footer telegram={telegram} instagram={instagram} />
           <BackToTop />
         </>
       )}

@@ -79,7 +79,9 @@ export async function uploadMedia(file) {
     }
 
     const type = up.resource_type === "video" ? "video" : "image";
-    return { type, src: up.secure_url };
+    // keep publicId + resourceType so the backend can delete the old asset
+    // from Cloudinary when this media is replaced or removed.
+    return { type, src: up.secure_url, publicId: up.public_id, resourceType: up.resource_type };
   })();
 
   let timer;

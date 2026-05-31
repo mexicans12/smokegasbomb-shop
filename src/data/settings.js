@@ -2,10 +2,35 @@
    Public site reads via loadSettings(); the /admin CMS writes via
    saveSettings(). Backed by the /api/settings endpoint (Redis). */
 
+/* Social links are stored as bare usernames (e.g. "iltuocanale"), not full
+   URLs. The admin only types the username; the public buttons build the URL
+   via telegramUrl()/instagramUrl(). */
 export const DEFAULT_SETTINGS = {
-  telegram: "https://t.me",
-  instagram: "https://instagram.com",
+  telegram: "",
+  instagram: "",
 };
+
+/** Extract a bare username from a stored value or a pasted full URL. */
+export function socialHandle(value) {
+  return (value || "")
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^(www\.)?(t\.me|telegram\.me|instagram\.com|instagr\.am)/i, "")
+    .replace(/^[@/]+/, "")
+    .replace(/\/+$/, "");
+}
+
+/** Build a full Telegram URL from a username (or legacy full URL). */
+export function telegramUrl(value) {
+  const handle = socialHandle(value);
+  return handle ? `https://t.me/${handle}` : "https://t.me";
+}
+
+/** Build a full Instagram URL from a username (or legacy full URL). */
+export function instagramUrl(value) {
+  const handle = socialHandle(value);
+  return handle ? `https://instagram.com/${handle}` : "https://instagram.com";
+}
 
 export async function loadSettings() {
   try {
