@@ -169,7 +169,7 @@ export default function ProductEditor({ product, onChange, onDelete }) {
           />
         </div>
         <div>
-          <label className={labelCls}>Quantità (0–100g)</label>
+          <label className={labelCls}>Quantità</label>
           <input
             type="text"
             inputMode="decimal"
