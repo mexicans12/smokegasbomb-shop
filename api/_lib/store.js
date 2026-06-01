@@ -91,7 +91,7 @@ export function sanitizeProduct(p, i) {
       .toUpperCase()
       .replace(/[^A-Z]/g, "")
       .slice(0, 1),
-    quantity: Math.max(0, Math.min(5, Number(p?.quantity) || 0)),
+    quantity: Math.max(0, Math.min(100, Number(p?.quantity) || 0)),
     price: Math.max(0, Number(p?.price) || 0),
     media: {
       type: t,

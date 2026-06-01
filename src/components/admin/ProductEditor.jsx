@@ -169,7 +169,7 @@ export default function ProductEditor({ product, onChange, onDelete }) {
           />
         </div>
         <div>
-          <label className={labelCls}>Quantità (0–5g)</label>
+          <label className={labelCls}>Quantità (0–100g)</label>
           <input
             type="text"
             inputMode="decimal"
@@ -181,7 +181,7 @@ export default function ProductEditor({ product, onChange, onDelete }) {
               if (v === "" || /^\d*\.?\d*$/.test(v)) set({ quantity: v });
             }}
             onBlur={(e) => {
-              const n = Math.max(0, Math.min(5, parseFloat(e.target.value) || 0));
+              const n = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
               set({ quantity: n });
             }}
             placeholder="0"

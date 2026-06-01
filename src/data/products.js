@@ -3,7 +3,7 @@
    saveProducts(); media is uploaded straight to Vercel Blob via uploadMedia().
 
    Product shape (admin-editable variables):
-     id, name, package (A–Z), quantity (grams 0–5), price (number),
+     id, name, package (A–Z), quantity (grams 0–100), price (number),
      media { type: "image"|"video", src, poster? }
 
    NOTE: under `npm run dev` (plain Vite) the /api routes don't run, so
