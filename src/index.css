@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* ---- Design tokens (Tailwind v4 @theme → generates utilities) ----
+   Palette from the SMOKE GAS BOMB logo: gold (primary) + graffiti red.
+   NOTE: the primary accent token is named `neon`, so every existing
+   `*-neon` utility (bg/text/border/ring) resolves to gold. */
+@theme {
+  --font-display: "Bebas Neue", ui-sans-serif, sans-serif;
+  --font-body: "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+  --color-neon: #ffc21a; /* GOLD – primary accent */
+  --color-gold: #ffc21a;
+  --color-blood: #e0241c; /* graffiti red */
+}
+
+/* ---- Base ---- */
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    margin: 0;
+    background-color: #070504;
+    color: #f5f1e8;
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+  /* Every button / interactive control gets the hand cursor */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  a[href],
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  ::selection {
+    background: var(--color-gold);
+    color: #1a1206;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0c0a07;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2a1e08;
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3d2c0c;
+  }
+}
+
+/* ---- Reusable component classes (plain CSS, no @apply) ---- */
+.glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045),
+    rgba(255, 255, 255, 0.012)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.eyebrow {
+  font-family: var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.34em;
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: #b39b66;
+}
+
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+  line-height: 0.86;
+}
+
+.text-glow {
+  text-shadow:
+    0 0 22px rgba(255, 194, 26, 0.55),
+    0 0 64px rgba(255, 194, 26, 0.25);
+}
+
+.text-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.28);
+}
+
+.btn-glow {
+  box-shadow:
+    0 0 0 1px rgba(255, 194, 26, 0.4),
+    0 12px 40px -12px rgba(255, 194, 26, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.card-glow:hover {
+  box-shadow: 0 30px 80px -40px rgba(255, 194, 26, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---- Rising smoke (behind the hero logo) ---- */
+.smoke-puff {
+  position: absolute;
+  bottom: 6%;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle,
+    rgba(245, 245, 245, 0.5),
+    rgba(180, 180, 180, 0.14) 55%,
+    transparent 72%
+  );
+  filter: blur(12px);
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: smoke-rise 8s ease-in-out infinite;
+}
+
+@keyframes smoke-rise {
+  0% {
+    transform: translateY(40px) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.5;
+  }
+  55% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(-130px) scale(1.7);
+    opacity: 0;
+  }
+}
