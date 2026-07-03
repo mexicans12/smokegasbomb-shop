@@ -1,10 +1,10 @@
-/* POST /api/upload -- returns short-lived ImageKit upload auth params.
-   Admin-gated: only a logged-in admin can obtain a signature. The browser
-   then uploads the file directly to ImageKit's CDN (images + video).
+/* POST /api/upload -- authorizes a Vercel Blob client upload.
+   Admin-gated: only a logged-in admin can obtain a token. The browser
+   then uploads the file directly to Vercel Blob (images + video).
 
-   Env (server-only): IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY,
-                      IMAGEKIT_URL_ENDPOINT */
-import { createHmac, randomUUID } from "node:crypto";
+   Env (server-only): BLOB_READ_WRITE_TOKEN (auto-injected by Vercel
+   when a Blob store is connected to this project). */
+import { handleUpload } from "@vercel/blob/client";
 import { isAuthedReq } from "./_lib/auth.js";
 
 export default async function handler(req, res) {
@@ -13,26 +13,30 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Metodo non consentito" });
   }
 
-  if (!isAuthedReq(req)) {
-    return res.status(401).json({ error: "Non autorizzato. Effettua di nuovo l'accesso." });
-  }
-
-  const publicKey = process.env.IMAGEKIT_PUBLIC_KEY;
-  const privateKey = process.env.IMAGEKIT_PRIVATE_KEY;
-  const urlEndpoint = process.env.IMAGEKIT_URL_ENDPOINT;
-
-  if (!publicKey || !privateKey || !urlEndpoint) {
-    console.error("upload: ImageKit env vars missing");
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    console.error("upload: BLOB_READ_WRITE_TOKEN missing");
     return res.status(500).json({
       error:
-        "Archiviazione media non configurata: imposta IMAGEKIT_PUBLIC_KEY, IMAGEKIT_PRIVATE_KEY e IMAGEKIT_URL_ENDPOINT su Vercel, poi ridistribuisci.",
+        "Archiviazione media non configurata: collega un Blob store al progetto su Vercel (Storage -- Create Database -- Blob), poi ridistribuisci.",
     });
   }
 
-  // ImageKit client-side upload auth: HMAC-SHA1(token + expire, privateKey)
-  const token = randomUUID();
-  const expire = Math.floor(Date.now() / 1000) + 2400; // 40 min
-  const signature = createHmac("sha1", privateKey).update(token + expire).digest("hex");
-
-  return res.status(200).json({ publicKey, token, expire, signature });
+  try {
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
+      onBeforeGenerateToken: async () => {
+        if (!isAuthedReq(req)) {
+          throw new Error("Non autorizzato. Effettua di nuovo l'accesso.");
+        }
+        return {
+          allowedContentTypes: ["image/*", "video/*"],
+          addRandomSuffix: true,
+        };
+      },
+    });
+    return res.status(200).json(jsonResponse);
+  } catch (error) {
+    return res.status(400).json({ error: error.message || "Upload non riuscito" });
+  }
 }

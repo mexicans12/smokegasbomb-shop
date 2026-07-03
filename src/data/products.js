@@ -1,14 +1,15 @@
 /* ---- product data access (talks to the backend API) ----
    Public site reads via loadProducts(); the /admin CMS writes via
-   saveProducts(); media is uploaded to ImageKit via uploadMedia().
+   saveProducts(); media is uploaded to Vercel Blob via uploadMedia().
 
    Product shape (admin-editable variables):
      id, name, package (A-Z), quantity (grams 0-100), price (number),
-     media { type: "image"|"video", src, poster?, fileId? }
+     media { type: "image"|"video", src, poster? }
 
    NOTE: under `npm run dev` (plain Vite) the /api routes don't run, so
    loadProducts() falls back to DEFAULT_PRODUCTS and writes/login will fail.
    Use `vercel dev` (or a Vercel deploy/preview) to exercise the backend. */
+import { upload } from "@vercel/blob/client";
 
 const DEFAULT_PRODUCTS = [
   { id: 1, name: "Phantom", package: "A", quantity: 3.5, price: 45, media: { type: "image", src: "" } },
@@ -47,9 +48,10 @@ export async function saveProducts(products) {
   return true;
 }
 
-/** Upload an image/video to ImageKit (signed); returns { type, src, fileId }.
- *  1) get short-lived auth params from our admin-gated /api/upload
- *  2) upload the file directly to ImageKit's CDN via XHR (for progress)
+/** Upload an image/video to Vercel Blob (signed); returns { type, src }.
+ *  Auth (admin session) and the image/video content-type restriction are
+ *  enforced server-side in the admin-gated /api/upload route -- see
+ *  onBeforeGenerateToken in api/upload.js.
  *  onProgress(percent 0-100) is called as the file uploads. */
 export async function uploadMedia(file, onProgress) {
   const report = (p) => {
@@ -57,61 +59,16 @@ export async function uploadMedia(file, onProgress) {
   };
   report(0);
 
-  // 1. auth params from our backend (requires admin session)
-  const sigRes = await fetch("/api/upload", {
-    method: "POST",
-    credentials: "include",
-  });
-  const sig = await sigRes.json().catch(() => ({}));
-  if (!sigRes.ok) {
-    throw new Error(sig.error || "Impossibile ottenere i parametri di upload");
-  }
-
-  // 2. direct upload to ImageKit via XHR so we can track upload progress
-  const form = new FormData();
-  form.append("file", file);
-  form.append("fileName", file.name || "upload");
-  form.append("publicKey", sig.publicKey);
-  form.append("signature", sig.signature);
-  form.append("token", sig.token);
-  form.append("expire", String(sig.expire));
-  form.append("folder", "/smokegasbomb");
-  form.append("useUniqueFileName", "true");
-
-  const up = await new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "https://upload.imagekit.io/api/v1/files/upload");
-    xhr.timeout = 120000; // 2 min ceiling
-
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) report((e.loaded / e.total) * 100);
-    };
-    // file sent; ImageKit still processing -- show near-complete
-    xhr.upload.onload = () => report(99);
-
-    xhr.onload = () => {
-      let data = {};
-      try {
-        data = JSON.parse(xhr.responseText);
-      } catch {
-        /* ignore */
-      }
-      if (xhr.status >= 200 && xhr.status < 300) {
-        report(100);
-        resolve(data);
-      } else {
-        reject(new Error(data?.message || "Upload su ImageKit non riuscito"));
-      }
-    };
-    xhr.onerror = () => reject(new Error("Errore di rete durante l'upload"));
-    xhr.ontimeout = () => reject(new Error("Upload scaduto. Riprova."));
-
-    xhr.send(form);
+  const blob = await upload(`smokegasbomb/${file.name || "upload"}`, file, {
+    access: "public",
+    handleUploadUrl: "/api/upload",
+    multipart: true,
+    abortSignal: AbortSignal.timeout(120000), // 2 min ceiling
+    onUploadProgress: ({ percentage }) => report(percentage),
   });
 
   const type = file.type.startsWith("video/") ? "video" : "image";
-  // fileId lets the backend delete this asset when the media is replaced or removed
-  return { type, src: up.url, fileId: up.fileId };
+  return { type, src: blob.url };
 }
 
 /* ---- helpers ---- */

@@ -81,9 +81,7 @@ export function sanitizeSettings(s) {
   };
 }
 
-/** Keep only the known fields and coerce types -- never trust the client.
-    Preserves legacy `publicId`/`resourceType` (Cloudinary) on products that
-    have not been re-uploaded yet, so existing URLs keep working. */
+/** Keep only the known fields and coerce types -- never trust the client. */
 export function sanitizeProduct(p, i) {
   const t = p?.media?.type === "video" ? "video" : "image";
   return {
@@ -99,22 +97,19 @@ export function sanitizeProduct(p, i) {
       type: t,
       src: String(p?.media?.src ?? "").slice(0, 2048),
       ...(p?.media?.poster ? { poster: String(p.media.poster).slice(0, 2048) } : {}),
-      // ImageKit
-      ...(p?.media?.fileId ? { fileId: String(p.media.fileId).slice(0, 256) } : {}),
-      // Cloudinary legacy -- kept so old assets are not orphaned during transition
-      ...(p?.media?.publicId ? { publicId: String(p.media.publicId).slice(0, 256) } : {}),
-      ...(p?.media?.resourceType ? { resourceType: String(p.media.resourceType).slice(0, 16) } : {}),
     },
   };
 }
 
-/** Collect ImageKit assets ({ fileId }) referenced by a product list --
- *  used to diff old vs new and delete orphaned uploads. */
+/** Collect Vercel Blob assets ({ url }) referenced by a product list --
+ *  used to diff old vs new and delete orphaned uploads. Vercel Blob's
+ *  del() accepts the blob's own URL directly, so no separate id is
+ *  needed the way ImageKit/R2 required one. */
 export function collectAssets(products) {
   const map = new Map();
   for (const p of products || []) {
-    const id = p?.media?.fileId;
-    if (id) map.set(id, { fileId: id });
+    const src = p?.media?.src;
+    if (src) map.set(src, { url: src });
   }
   return map;
 }
