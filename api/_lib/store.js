@@ -97,19 +97,21 @@ export function sanitizeProduct(p, i) {
       type: t,
       src: String(p?.media?.src ?? "").slice(0, 2048),
       ...(p?.media?.poster ? { poster: String(p.media.poster).slice(0, 2048) } : {}),
+      ...(p?.media?.publicId ? { publicId: String(p.media.publicId).slice(0, 256) } : {}),
+      ...(p?.media?.resourceType ? { resourceType: String(p.media.resourceType).slice(0, 16) } : {}),
     },
   };
 }
 
-/** Collect Vercel Blob assets ({ url }) referenced by a product list --
- *  used to diff old vs new and delete orphaned uploads. Vercel Blob's
- *  del() accepts the blob's own URL directly, so no separate id is
- *  needed the way ImageKit/R2 required one. */
+/** Collect Cloudinary assets ({ publicId, resourceType }) referenced by
+ *  a product list -- used to diff old vs new and delete orphaned uploads. */
 export function collectAssets(products) {
   const map = new Map();
   for (const p of products || []) {
-    const src = p?.media?.src;
-    if (src) map.set(src, { url: src });
+    const publicId = p?.media?.publicId;
+    if (publicId) {
+      map.set(publicId, { publicId, resourceType: p?.media?.resourceType || "image" });
+    }
   }
   return map;
 }

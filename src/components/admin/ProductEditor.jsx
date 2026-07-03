@@ -21,7 +21,7 @@ export default function ProductEditor({ product, onChange, onDelete }) {
     onChange({ ...product, media: { ...product.media, ...patch } });
 
   // Clicking the media box opens the file picker; the file is uploaded to
-  // Vercel Blob with live progress, and the URL is stored on the product.
+  // Cloudinary's CDN with live progress, and the URL is stored on the product.
   const onPickFile = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file

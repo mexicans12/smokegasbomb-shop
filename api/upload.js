@@ -1,11 +1,11 @@
-/* POST /api/upload -- authorizes a Vercel Blob client upload.
-   Admin-gated: only a logged-in admin can obtain a token. The browser
-   then uploads the file directly to Vercel Blob (images + video).
+/* POST /api/upload -- returns short-lived Cloudinary upload signature.
+   Admin-gated: only a logged-in admin can obtain a signature. The browser
+   then uploads the file directly to Cloudinary's CDN (images + video).
 
-   Env (server-only): BLOB_READ_WRITE_TOKEN (auto-injected by Vercel
-   when a Blob store is connected to this project). */
-import { handleUpload } from "@vercel/blob/client";
+   Env (server-only): CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY,
+                      CLOUDINARY_API_SECRET */
 import { isAuthedReq } from "./_lib/auth.js";
+import { cloudinaryConfig, signUpload } from "./_lib/cloudinary.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -13,30 +13,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Metodo non consentito" });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    console.error("upload: BLOB_READ_WRITE_TOKEN missing");
+  if (!isAuthedReq(req)) {
+    return res.status(401).json({ error: "Non autorizzato. Effettua di nuovo l'accesso." });
+  }
+
+  const { cloudName, apiKey, apiSecret } = cloudinaryConfig();
+  if (!cloudName || !apiKey || !apiSecret) {
+    console.error("upload: Cloudinary env vars missing");
     return res.status(500).json({
       error:
-        "Archiviazione media non configurata: collega un Blob store al progetto su Vercel (Storage -- Create Database -- Blob), poi ridistribuisci.",
+        "Archiviazione media non configurata: imposta CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY e CLOUDINARY_API_SECRET su Vercel, poi ridistribuisci.",
     });
   }
 
-  try {
-    const jsonResponse = await handleUpload({
-      body: req.body,
-      request: req,
-      onBeforeGenerateToken: async () => {
-        if (!isAuthedReq(req)) {
-          throw new Error("Non autorizzato. Effettua di nuovo l'accesso.");
-        }
-        return {
-          allowedContentTypes: ["image/*", "video/*"],
-          addRandomSuffix: true,
-        };
-      },
-    });
-    return res.status(200).json(jsonResponse);
-  } catch (error) {
-    return res.status(400).json({ error: error.message || "Upload non riuscito" });
-  }
+  return res.status(200).json(signUpload("smokegasbomb"));
 }
